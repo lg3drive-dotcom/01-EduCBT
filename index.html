@@ -7,6 +7,14 @@
     <title>EduCBT - Sistem Ujian Berbasis Komputer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      // Shim untuk mencegah error "process is not defined" di browser (Vercel/Production)
+      window.process = {
+        env: {
+          API_KEY: "" // Akan diisi otomatis oleh lingkungan atau diatur manual
+        }
+      };
+    </script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -40,7 +48,7 @@
 </head>
 <body>
     <div id="root"></div>
-    <!-- Script di bawah ini sangat krusial agar aplikasi tidak blank -->
+    <!-- Pastikan file index.tsx ada di direktori yang sama -->
     <script type="module" src="./index.tsx"></script>
 </body>
 </html>

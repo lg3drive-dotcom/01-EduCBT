@@ -73,7 +73,20 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   }, [formData.subject, editingId, showForm, questions]);
 
   const handleBatchAI = async () => {
-    if (!aiMaterial && !aiFile) return alert("Masukkan acuan materi atau upload dokumen (PDF/DOCX/TXT).");
+    if (!aiMaterial && !aiFile) return alert("Masukkan acuan materi atau upload dokumen.");
+    
+    // Cek ketersediaan window.aistudio sebagai fallback
+    const hasKey = !!(process.env.API_KEY || (window as any).process?.env?.API_KEY);
+    const aiStudio = (window as any).aistudio;
+
+    if (!hasKey && aiStudio) {
+      const confirmed = confirm("API Key belum diset. Pilih API Key sekarang?");
+      if (confirmed) {
+        await aiStudio.openSelectKey();
+        return; 
+      }
+    }
+
     setIsAiLoading(true);
     try {
       const newQuestions = await generateBatchAIQuestions(
@@ -91,8 +104,9 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
         setAiMaterial('');
         setAiCustomPrompt('');
       }
-    } catch (err) {
-      alert("Terjadi kesalahan saat menghubungi AI.");
+    } catch (err: any) {
+      console.error("AI Error Details:", err);
+      alert(`Gagal Generate: ${err.message || "Pastikan API Key sudah benar di Vercel Dashboard."}`);
     } finally {
       setIsAiLoading(false);
     }
@@ -112,8 +126,12 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   const handleGenerateMainImage = async () => {
     if (!formData.text) return alert("Tuliskan pertanyaan terlebih dahulu.");
     setIsImageGenerating(true);
-    const img = await generateAIImage(formData.text);
-    if (img) setFormData({ ...formData, questionImage: img });
+    try {
+      const img = await generateAIImage(formData.text);
+      if (img) setFormData({ ...formData, questionImage: img });
+    } catch (err: any) {
+      alert(`Gagal generate gambar: ${err.message}`);
+    }
     setIsImageGenerating(false);
   };
 
@@ -121,11 +139,15 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
     const optText = formData.options[idx];
     if (!optText) return alert("Tuliskan teks opsi terlebih dahulu.");
     setGeneratingOptionIdx(idx);
-    const img = await generateAIImage(`${formData.text} - ${optText}`);
-    if (img) {
-      const nextImgs = [...formData.optionImages];
-      nextImgs[idx] = img;
-      setFormData({ ...formData, optionImages: nextImgs });
+    try {
+      const img = await generateAIImage(`${formData.text} - ${optText}`);
+      if (img) {
+        const nextImgs = [...formData.optionImages];
+        nextImgs[idx] = img;
+        setFormData({ ...formData, optionImages: nextImgs });
+      }
+    } catch (err: any) {
+       alert(`Gagal: ${err.message}`);
     }
     setGeneratingOptionIdx(null);
   };
@@ -174,7 +196,6 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
   };
 
   const handleExport = () => {
-    // Sesuai permintaan, langsung download lengkap (kisi + soal tabel)
     generateQuestionBankPDF(processedQuestions, 'lengkap', subjectFilter !== 'ALL' ? subjectFilter as Subject : undefined);
   };
 
@@ -363,7 +384,6 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
              </div>
              
              <div className="space-y-8">
-               {/* Baris Pertama: Meta Data */}
                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="flex flex-col gap-1">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">No. Urut</label>
@@ -387,7 +407,6 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
                   </div>
                </div>
 
-               {/* Bagian Pertanyaan & Media Soal */}
                <div className="space-y-4">
                   <div className="flex flex-col gap-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Teks Pertanyaan</label>
@@ -412,7 +431,6 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
                   </div>
                </div>
 
-               {/* Bagian Opsi Jawaban (SINGLE & MULTIPLE & COMPLEX) */}
                {(formData.type === QuestionType.SINGLE || formData.type === QuestionType.MULTIPLE || formData.type === QuestionType.COMPLEX_CATEGORY) && (
                  <div className="space-y-4">
                     <div className="flex justify-between items-center">
@@ -423,7 +441,6 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
                     <div className="space-y-3">
                       {formData.options.map((opt, idx) => (
                         <div key={idx} className="flex gap-4 items-start bg-white p-4 border border-slate-200 rounded-2xl group transition-all hover:shadow-md">
-                           {/* Indikator Jawaban Benar */}
                            <div className="pt-2">
                              {formData.type === QuestionType.SINGLE && (
                                <input type="radio" name="correctSingle" checked={formData.correctAnswer === idx} onChange={() => setFormData({...formData, correctAnswer: idx})} className="w-5 h-5 accent-blue-600 cursor-pointer" />
@@ -446,7 +463,6 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
                              )}
                            </div>
                            
-                           {/* Teks Opsi */}
                            <div className="flex-1 space-y-2">
                               <div className="flex gap-2 items-center">
                                 <span className="text-[10px] font-black text-slate-400 w-4">{String.fromCharCode(65 + idx)}</span>
@@ -458,7 +474,6 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
                                 <button onClick={() => handleRemoveOption(idx)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-all">×</button>
                               </div>
                               
-                              {/* Media Opsi */}
                               <div className="flex items-center gap-3">
                                  <button onClick={() => { setGeneratingOptionIdx(idx); optionFileInputRef.current?.click(); }} className="text-[9px] font-bold text-slate-400 hover:text-blue-500 flex items-center gap-1">
                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> UPLOAD
@@ -481,7 +496,6 @@ const QuestionManager: React.FC<QuestionManagerProps> = ({
                  </div>
                )}
 
-               {/* Bagian Jawaban Singkat */}
                {formData.type === QuestionType.SHORT_ANSWER && (
                   <div className="space-y-1">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Kunci Jawaban Singkat</label>
