@@ -1,0 +1,7 @@
+{
+  "name": "01 EduCBT - Sistem Ujian Berbasis Komputer",
+  "description": "A comprehensive Computer-Based Test (CBT) platform with student identity verification, timed sessions, AI-assisted question generation, and administrative controls for question management and PDF reporting.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
