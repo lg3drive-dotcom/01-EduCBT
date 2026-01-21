@@ -223,3 +223,7 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+console.log("ENV TEST:", import.meta.env);
+console.log("KEY:", import.meta.env.VITE_API_KEY);
+
