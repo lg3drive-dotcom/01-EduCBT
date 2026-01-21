@@ -6,7 +6,7 @@ import { Subject, QuestionType, CognitiveLevel } from "../types";
  * Helper untuk mendapatkan instance AI secara aman
  */
 const getAIInstance = () => {
-  const apiKey = process.env.API_KEY || (window as any).process?.env?.API_KEY;
+  const apiKey = import.meta.env.VITE_API_KEY || (window as any).process?.env?.API_KEY;
   if (!apiKey) {
     throw new Error("API_KEY tidak ditemukan. Pastikan Environment Variable sudah diatur di Vercel Dashboard.");
   }
